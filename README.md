@@ -1,78 +1,75 @@
 # 🧠 Solidity Gas Optimization: Bool vs Uint8 vs BitMap
 
-This project demonstrates how storing flags (true/false) using different techniques impacts gas usage. It compares three smart contracts that use:
+This project compares how storing flags (true/false) with different techniques impacts gas usage in Solidity.
 
-- `bool` mapping
-- `uint8` mapping
+We implemented and tested:
+
+- `mapping(uint256 => bool)`
+- `mapping(uint256 => uint8)`
 - a compact `uint256` bitmap
 
-All contracts perform the same task: marking an ID or index as “claimed” and checking its status.
+All contracts perform the same action: marking an ID as claimed and checking its status.
 
 ---
 
 ## 📦 Contracts
 
-### 1️⃣ `BoolMapping.sol`
-- Uses `mapping(uint256 => bool)`.
-- Each key maps directly to a `bool`.
-- Gas-inefficient due to Solidity's internal padding and storage slot behavior.
+### 1️⃣ BoolMapping.sol
+Uses `mapping(uint256 => bool)`  
+✅ Simple  
+⚠️ Least storage efficient if used for many flags.
 
-### 2️⃣ `Uint8MappingFlags.sol`
-- Uses `mapping(uint256 => uint8)`.
-- Stores the flag as a `1` or `0` instead of `true`/`false`.
-- Slight improvement in gas cost and can help avoid some padding inefficiencies.
+### 2️⃣ Uint8MappingFlags.sol
+Uses `mapping(uint256 => uint8)` storing 1 or 0  
+✅ Slightly clearer storage  
+⚠️ Still uses a full slot per entry.
 
-### 3️⃣ `BitmapFlags.sol`
-- Uses a single `uint256` to represent 256 flags.
-- Each bit corresponds to one index (0–255).
-- Offers **major savings** in storage for bulk operations or dense sets of flags.
+### 3️⃣ BitmapFlags.sol
+Uses a `uint256` bitmap (256 flags in 1 slot)  
+✅ Most storage-efficient for dense IDs.
 
 ---
 
 ## 🧪 Gas Usage Comparison
 
-| Operation         | Contract A (`bool`) | Contract B (`uint8`) | Contract C (`BitMap`) |
-|------------------|---------------------|-----------------------|------------------------|
-| `setClaimed()`   | Transaction: 43,869  
-Execution: 22,665 | Transaction: 43,869  
-Execution: 22,665 | Transaction: **43,787**  
-Execution: **22,583** |
+| Operation              | Contract A (`bool`)          | Contract B (`uint8`)         | Contract C (`BitMap`)        |
+|------------------------|------------------------------|------------------------------|------------------------------|
+| **Raw Gas Used**       | 50,450                       | 50,450                       | 50,356                       |
+| **Transaction Cost**   | 43,869                       | 43,869                       | 43,787                       |
+| **Execution Cost**     | 22,665                       | 22,665                       | 22,583                       |
 
-> ⛽️ *Measured during call to mark a single ID/index as claimed.*
+✅ **Notes:**
+- Measured during `setClaimed()` (A & B) and `setFlag()` (C).
+- Gas differences are small for single writes but grow with scale.
 
 ---
 
 ## 🧩 Observations
 
-- **Gas Difference:**  
-  BitMap (Contract C) uses **less gas** than both bool and uint8 mappings.
-
-- **Why?**  
-  BitMap packs all flags into a single storage slot (32 bytes = 256 bits), making it highly storage-efficient.
-
-- **Use Case Fit:**  
-  - ✅ Use `bool` or `uint8` if you have sparse or non-sequential IDs.
-  - ✅ Use `BitMap` when you're flagging a dense and known range (like IDs 0–255).
+- **BitMap** was marginally cheaper per write because it stores multiple flags in one storage slot.
+- **Bool and Uint8** mappings had identical gas because each mapping entry uses a full 32-byte slot regardless of the value type.
 
 ---
 
 ## 🛠️ How to Run
 
-1. Clone the repo and open in [Remix IDE](https://remix.ethereum.org/).
-2. Deploy each contract.
-3. Call:
-   - `setClaimed()` or `setFlag()` with a value like `1`.
-   - `isClaimed()` or `isFlagSet()` to check status.
-4. Observe the gas usage in the Remix terminal.
+1. Clone this repo.
+2. Open [Remix IDE](https://remix.ethereum.org/).
+3. Compile and deploy all 3 contracts.
+4. Interact with:
+   - `setClaimed()` / `setFlag()`
+   - `isClaimed()` / `isFlagSet()`
+5. Check gas usage in the Remix terminal.
 
 ---
 
 ## 🎯 Learning Goal
 
-Understand how different storage strategies affect gas costs in Solidity. This helps you:
+This exercise helps you:
 
-- Write more efficient smart contracts.
-- Choose the right storage approach for your use case.
-- Build the foundation for advanced audit-level optimization.
+✅ Understand Solidity storage slot behavior.  
+✅ Evaluate when bit-packing makes sense.  
+✅ Optimize smart contract gas usage for large datasets.
 
 ---
+
